@@ -48,7 +48,8 @@ This project is distributed under the [MIT License](./LICENSE).
 - Original author: **Rafal Mioduszewski**
 - Modified and improved by: **Peter Garza**
 
----
+---![Screenshot from 2025-05-21 02-05-07](https://github.com/user-attachments/assets/fefcfdc5-7495-423f-b867-bdeaa24c837f)
+
 
 ## 💬 Feedback
 
