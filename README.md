@@ -46,7 +46,7 @@ This extension lets you launch ChatGPT from your GNOME desktop as a standalone w
 This project is distributed under the [MIT License](./LICENSE).
 
 - Original author: **Rafal Mioduszewski**
-- Modified and improved by: **[Your Name or Handle]**
+- Modified and improved by: **Peter Garza**
 
 ---
 
