@@ -13,6 +13,7 @@ This extension lets you launch ChatGPT from your GNOME desktop as a standalone w
 - 🖥️ Updated support for GNOME Shell 41–48
 - 🧹 Cleaner metadata and improved layout
 - ✅ Ready for use in modern Linux distros (AnduinOS, openSUSE Tumbleweed, etc.)
+![Screenshot from 2025-05-21 12-41-08](https://github.com/user-attachments/assets/293c9480-b652-4fcd-8f1f-11a4c47ffae3)
 
 ---
 
@@ -48,10 +49,11 @@ This project is distributed under the [MIT License](./LICENSE).
 - Original author: **Rafal Mioduszewski**
 - Modified and improved by: **Peter Garza**
 
----![Screenshot from 2025-05-21 02-05-07](https://github.com/user-attachments/assets/fefcfdc5-7495-423f-b867-bdeaa24c837f)
+
 
 
 ## 💬 Feedback
 
 Suggestions, improvements, or bug reports are welcome.  
 Feel free to open an issue or submit a merge request!
+
