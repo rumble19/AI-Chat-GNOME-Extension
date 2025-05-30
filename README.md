@@ -19,26 +19,40 @@ This extension lets you launch ChatGPT from your GNOME desktop as a standalone w
 
 ## 🧪 Installation
 
-1. **Download** the `.zip` file from the [repository](./-/tree/master) or [Releases](./-/releases).
-2. **Extract** the folder:
-    ```
-    chatgpt-gnome-desktop@chatgpt-gnome-desktop
-    ```
-3. **Move** the folder into your GNOME extensions directory:
-    ```bash
-    mkdir -p ~/.local/share/gnome-shell/extensions/
-    mv chatgpt-gnome-desktop@chatgpt-gnome-desktop ~/.local/share/gnome-shell/extensions/
-    ```
-4. **Restart GNOME Shell**:
-   - On **X11**: Press `Alt` + `F2`, type `r`, and press Enter.
-   - On **Wayland**: Log out and log back in.
+### Method 1: Git Clone (Recommended)
 
-5. **Enable the extension** using:
-   - **GNOME Tweaks** or **Extension Manager**
-   - Or via terminal:
-     ```bash
-     gnome-extensions enable chatgpt-gnome-desktop@chatgpt-gnome-desktop
-     ```
+```bash
+# Clone the repository directly to your extensions directory
+git clone https://github.com/macdaddyaz20/ChatGPT-GNOME-Extension.git ~/.local/share/gnome-shell/extensions/chatgpt-gnome-desktop@chatgpt-gnome-desktop
+
+# Enable the extension
+gnome-extensions enable chatgpt-gnome-desktop@chatgpt-gnome-desktop
+
+# Restart GNOME Shell (Alt+F2, type 'r', press Enter) or log out/in
+```
+
+### Method 2: Manual Download
+
+1. **Download the repository** as a ZIP file from GitHub or from the [Releases](../../releases) section
+2. **Extract the files** to the correct location:
+
+```bash
+# Create extensions directory if it doesn't exist
+mkdir -p ~/.local/share/gnome-shell/extensions/
+
+# Extract to the correct folder name
+unzip ChatGPT-GNOME-Extension-main.zip
+mv ChatGPT-GNOME-Extension-main ~/.local/share/gnome-shell/extensions/chatgpt-gnome-desktop@chatgpt-gnome-desktop
+```
+
+3. **Enable the extension**:
+```bash
+gnome-extensions enable chatgpt-gnome-desktop@chatgpt-gnome-desktop
+```
+
+4. **Restart GNOME Shell**:
+   - On Wayland: Log out and log back in
+   - On X11: Press Alt+F2, type `r`, and press Enter
 
 ---
 
