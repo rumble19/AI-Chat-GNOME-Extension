@@ -8,8 +8,10 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
     constructor(metadata) {
         super(metadata);
         this.button = null;
+        this.icon = null;
         this.menu = null;
         this.proc = null;
+        this.starting = false;
         this.initialized = false;
         this.automaticallyStartNewWindowAfterRestart = false;
     }
@@ -26,7 +28,7 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             style_class: 'panel-button',
             reactive: true,
             can_focus: true,
-            x_expand: true,
+            x_expand: false,
             y_expand: false,
             track_hover: true
         });
@@ -34,9 +36,13 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
         log("moje path ************");
         log(this.path)
         let gicon = Gio.icon_new_for_string(this.path + "/icons/chatgpt_icon.png");
-        let icon = new St.Icon({ gicon: gicon });
+        this.icon = new St.Icon({ 
+            gicon: gicon,
+            style_class: 'system-status-icon',
+            icon_size: 20
+        });
 
-        this.button.set_child(icon);
+        this.button.set_child(this.icon);
         this.button.connect('button-press-event', (actor, event) => {
             log('Button pressed: ' + event.get_button());
             if (event.get_button() == 1) {
@@ -76,19 +82,26 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             this.killWindow();
             this.proc = null;
         }
-        if (this.button.get_parent()) {
+        if (this.button && this.button.get_parent()) {
             Main.panel._rightBox.remove_child(this.button);
         }
         if (this.menu) {
             this.menu.destroy();
+            this.menu = null;
         }
-        log('Button removed from panel');
+        if (this.icon) {
+            this.icon = null;
+        }
+        this.button = null;
+        this.initialized = false;
+        log('Extension disabled and reset');
     }
 
     toggleWindow() {
         log('Toggling window');
-        if (!this.proc) {
+        if (!this.proc && !this.starting) {
             log('Creating new subprocess');
+            this.starting = true;
 
             // Get the position of the button
             let [x, y] = this.button.get_transformed_position();
@@ -110,6 +123,7 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
                     log('Subprocess wait failed: ' + e.message);
                 }
                 this.proc = null;
+                this.starting = false;
 
                 if(this.automaticallyStartNewWindowAfterRestart){
                     this.automaticallyStartNewWindowAfterRestart = false;
