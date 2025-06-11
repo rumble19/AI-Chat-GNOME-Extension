@@ -2,17 +2,24 @@ imports.gi.versions.Gtk = '4.0';
 imports.gi.versions.WebKit = '6.0';
 
 const GLib = imports.gi.GLib;
-const System = imports.system;
 const Gtk = imports.gi.Gtk;
 const WebKit = imports.gi.WebKit;
+
+// Constants
+const APP_NAME = 'ChatGPT-Gnome-Desktop-Extension';
+const WINDOW_TITLE = 'ChatGPT';
+const DEFAULT_WINDOW_WIDTH = 1150;
+const DEFAULT_WINDOW_HEIGHT = 650;
+const CHATGPT_URL = 'https://chat.openai.com/chat';
+const COOKIE_FILENAME = 'cookies.sqlite';
 
 function log(message) {
     print('window.js: ' + message);
 }
 
 function prepareCookieStorage() {
-    const appName = 'ChatGPT-Gnome-Desktop-Extension';
-    const cookieFilename = 'cookies.sqlite';
+    const appName = APP_NAME;
+    const cookieFilename = COOKIE_FILENAME;
 
     const xdgDataHome = GLib.getenv('XDG_DATA_HOME') || GLib.build_filenamev([GLib.get_home_dir(), '.local', 'share']);
     const appDataDir = GLib.build_filenamev([xdgDataHome, appName]);
@@ -26,17 +33,35 @@ function createWindow(x, y) {
     log('Creating window');
     try {
         const appWindow = new Gtk.Window({
-            default_width: 1150,
-            default_height: 650,
-            title: 'ChatGPT'
+            default_width: DEFAULT_WINDOW_WIDTH,
+            default_height: DEFAULT_WINDOW_HEIGHT,
+            title: WINDOW_TITLE
         });
 
         // Use HeaderBar for better system integration
         const headerBar = new Gtk.HeaderBar();
-        headerBar.set_title_widget(new Gtk.Label({ label: 'ChatGPT' }));
+        headerBar.set_title_widget(new Gtk.Label({ label: WINDOW_TITLE }));
         headerBar.set_show_title_buttons(true);
         appWindow.set_titlebar(headerBar);
-        log(`Calculated position: x=${x}, y=${y}`);
+        
+        // Handle window positioning
+        log(`Received position coordinates: x=${x}, y=${y}`);
+        
+        // Note: GTK4 has limited window positioning capabilities, especially on Wayland
+        // The coordinates are calculated from the panel button position in extension.js
+        // but direct window positioning is restricted by the compositor
+        try {
+            const sessionType = GLib.getenv('XDG_SESSION_TYPE');
+            if (sessionType === 'x11') {
+                log('X11 session - window positioning may be possible with compositor cooperation');
+                // GTK4 removed gtk_window_move(), positioning now depends on compositor
+                // Some compositors may honor size and position hints
+            } else {
+                log(`${sessionType || 'Unknown'} session - window positioning is managed by compositor`);
+            }
+        } catch (e) {
+            log('Could not determine session type: ' + e.message);
+        }
 
         log('Creating scrolled window');
         const scrolledWindow = new Gtk.ScrolledWindow();
@@ -61,7 +86,7 @@ function createWindow(x, y) {
         scrolledWindow.set_child(webView);
         
         log('Loading ChatGPT URL');
-        webView.load_uri('https://chat.openai.com/chat');
+        webView.load_uri(CHATGPT_URL);
 
         appWindow.set_child(scrolledWindow);
         appWindow.connect('destroy', () => {

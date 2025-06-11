@@ -4,6 +4,11 @@ import St from 'gi://St';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+// Constants
+const ICON_SIZE = 20;
+const MENU_ALIGNMENT = 0.0;
+const MENU_ARROW_SIDE = 0;
+
 export default class ChatGPTGnomeDesktopExtension extends Extension {
     constructor(metadata) {
         super(metadata);
@@ -33,13 +38,12 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             track_hover: true
         });
 
-        log("moje path ************");
-        log(this.path)
+        log('Loading ChatGPT icon from: ' + this.path + '/icons/chatgpt_icon.png');
         let gicon = Gio.icon_new_for_string(this.path + "/icons/chatgpt_icon.png");
         this.icon = new St.Icon({ 
             gicon: gicon,
             style_class: 'system-status-icon',
-            icon_size: 20
+            icon_size: ICON_SIZE
         });
 
         this.button.set_child(this.icon);
@@ -52,7 +56,7 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             }
         });
 
-        this.menu = new PopupMenu.PopupMenu(this.button, 0.0, St.Side.TOP, 0);
+        this.menu = new PopupMenu.PopupMenu(this.button, MENU_ALIGNMENT, St.Side.TOP, MENU_ARROW_SIDE);
         this.menu.actor.add_style_class_name('panel-status-menu-box');
         Main.layoutManager.addChrome(this.menu.actor);
         this.menu.actor.hide();
@@ -103,14 +107,18 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             log('Creating new subprocess');
             this.starting = true;
 
-            // Get the position of the button
+            // Calculate preferred window position based on button location
+            // Note: Actual positioning depends on compositor support (limited on Wayland)
             let [x, y] = this.button.get_transformed_position();
             let [width, height] = this.button.get_size();
-
-            log(x+','+y+','+width+','+height);
+            
+            // Position window below the button
+            const windowX = x;
+            const windowY = y + height;
+            log(`Button position: x=${x}, y=${y}, size: ${width}x${height}`);
+            log(`Calculated window position: x=${windowX}, y=${windowY}`);
             this.proc = new Gio.Subprocess({
-                argv: ['gjs', this.path + '/window.js', x.toString(), (y + height).toString()]//,
-                //flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+                argv: ['gjs', this.path + '/window.js', windowX.toString(), windowY.toString()]
             });
 
             this.proc.init(null);
@@ -151,7 +159,7 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             } catch (e) {
                 log('Failed to kill subprocess: ' + e.message);
             }
-            log('Kiled window');
+            log('Killed window');
         }
     }
 
