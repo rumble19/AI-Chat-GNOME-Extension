@@ -2,19 +2,27 @@ imports.gi.versions.Gtk = '4.0';
 imports.gi.versions.WebKit = '6.0';
 
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
 const WebKit = imports.gi.WebKit;
 
+// Translation function - simplified for standalone window
+function _(str) {
+    // In a real implementation, this would use proper gettext
+    // For now, return the string as-is
+    return str;
+}
+
 // Constants
 const APP_NAME = 'AI-Chat-GNOME-Extension';
-const WINDOW_TITLE = 'ChatGPT';
+const WINDOW_TITLE = _('ChatGPT');
 const DEFAULT_WINDOW_WIDTH = 1150;
 const DEFAULT_WINDOW_HEIGHT = 650;
 const CHATGPT_URL = 'https://chat.openai.com/chat';
 const COOKIE_FILENAME = 'cookies.sqlite';
 
 function log(message) {
-    print('window.js: ' + message);
+    console.log('window.js: ' + message);
 }
 
 function prepareCookieStorage() {
@@ -37,6 +45,14 @@ function createWindow(x, y) {
             default_height: DEFAULT_WINDOW_HEIGHT,
             title: WINDOW_TITLE
         });
+        
+        // Add accessibility properties (GTK4 compatible)
+        try {
+            // GTK4 uses different accessibility APIs
+            appWindow.set_accessible_name(WINDOW_TITLE);
+        } catch (e) {
+            log('Could not set accessibility properties: ' + e.message);
+        }
 
         // Use HeaderBar for better system integration
         const headerBar = new Gtk.HeaderBar();
@@ -75,10 +91,18 @@ function createWindow(x, y) {
         // Set up cookie persistence using network session (from GNOME discourse solution)
         try {
             const networkSession = webView.get_network_session();
-            const cookieManager = networkSession.get_cookie_manager();
-            cookieManager.set_persistent_storage(cookiePath, WebKit.CookiePersistentStorage.SQLITE);
-            cookieManager.set_accept_policy(WebKit.CookieAcceptPolicy.ALWAYS);
-            log('Success: Cookie persistence configured via network session');
+            if (networkSession) {
+                const cookieManager = networkSession.get_cookie_manager();
+                if (cookieManager) {
+                    cookieManager.set_persistent_storage(cookiePath, WebKit.CookiePersistentStorage.SQLITE);
+                    cookieManager.set_accept_policy(WebKit.CookieAcceptPolicy.ALWAYS);
+                    log('Success: Cookie persistence configured via network session');
+                } else {
+                    log('Warning: Could not get cookie manager');
+                }
+            } else {
+                log('Warning: Could not get network session');
+            }
         } catch (e) {
             log('Failed: Network session cookie config - ' + e.message);
         }
@@ -91,6 +115,14 @@ function createWindow(x, y) {
         appWindow.set_child(scrolledWindow);
         appWindow.connect('destroy', () => {
             log('Window destroyed');
+            // Clean up WebView resources
+            if (webView) {
+                try {
+                    webView.stop_loading();
+                } catch (e) {
+                    log('Error cleaning up WebView: ' + e.message);
+                }
+            }
         });
         
         log('Presenting window');
@@ -111,12 +143,13 @@ Gtk.init();
 // Match system color scheme preference
 const settings = Gtk.Settings.get_default();
 try {
-    const colorScheme = GLib.spawn_command_line_sync('gsettings get org.gnome.desktop.interface color-scheme')[1].toString().trim();
-    const preferDark = colorScheme.includes('prefer-dark');
+    const desktopSettings = new Gio.Settings({ schema: 'org.gnome.desktop.interface' });
+    const colorScheme = desktopSettings.get_string('color-scheme');
+    const preferDark = colorScheme === 'prefer-dark';
     settings.set_property('gtk-application-prefer-dark-theme', preferDark);
     log('Theme set to match system: ' + (preferDark ? 'dark' : 'light'));
 } catch (e) {
-    log('Failed to read system color scheme, using default');
+    log('Failed to read system color scheme, using default: ' + e.message);
 }
 
 const [x, y] = ARGV;

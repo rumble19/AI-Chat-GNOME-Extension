@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.ai-chat-gnome" path="/org/gnome/shell/extensions/ai-chat-gnome/">
+    <key name="window-width" type="i">
+      <default>1150</default>
+      <summary>Default window width</summary>
+      <description>The default width for the AI chat window</description>
+    </key>
+    <key name="window-height" type="i">
+      <default>650</default>
+      <summary>Default window height</summary>
+      <description>The default height for the AI chat window</description>
+    </key>
+    <key name="enable-cookie-persistence" type="b">
+      <default>true</default>
+      <summary>Enable cookie persistence</summary>
+      <description>Whether to persist cookies between sessions</description>
+    </key>
+  </schema>
+</schemalist>

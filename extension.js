@@ -5,7 +5,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import St from 'gi://St';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 // Constants
 const ICON_SIZE = 18;
@@ -13,19 +13,33 @@ const ICON_SIZE = 18;
 const AIChatIndicator = GObject.registerClass(
 class AIChatIndicator extends PanelMenu.Button {
     _init(extension) {
-        super._init(0.5, 'AI Chat Indicator', false);
+        super._init(0.5, _('AI Chat Indicator'), false);
         this._extension = extension;
         
-        const icon = new St.Icon({
-            gicon: Gio.icon_new_for_string(`${extension.path}/icons/chatgpt_icon.png`),
-            style_class: 'system-status-icon',
-            icon_size: ICON_SIZE
-        });
+        let icon;
+        try {
+            icon = new St.Icon({
+                gicon: Gio.icon_new_for_string(`${extension.path}/icons/chatgpt_icon.png`),
+                style_class: 'system-status-icon',
+                icon_size: ICON_SIZE
+            });
+        } catch (e) {
+            log('Failed to load icon, using fallback: ' + e.message);
+            icon = new St.Icon({
+                icon_name: 'applications-internet-symbolic',
+                style_class: 'system-status-icon',
+                icon_size: ICON_SIZE
+            });
+        }
         this.add_child(icon);
+        this.accessible_name = _('AI Chat');
+        this.accessible_role = 'button';
         
         // Add menu items
-        let menuRestart = new PopupMenu.PopupMenuItem('Restart');
-        let menuQuit = new PopupMenu.PopupMenuItem('Quit');
+        let menuRestart = new PopupMenu.PopupMenuItem(_('Restart'));
+        menuRestart.accessible_name = _('Restart AI Chat Window');
+        let menuQuit = new PopupMenu.PopupMenuItem(_('Quit'));
+        menuQuit.accessible_name = _('Quit AI Chat Window');
         
         this.menu.addMenuItem(menuRestart);
         this.menu.addMenuItem(menuQuit);
@@ -66,7 +80,7 @@ class AIChatIndicator extends PanelMenu.Button {
     }
 });
 
-export default class ChatGPTGnomeDesktopExtension extends Extension {
+export default class AIChatExtension extends Extension {
     constructor(metadata) {
         super(metadata);
         this.indicator = null;
@@ -96,7 +110,11 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             this.proc = null;
         }
         if (this.indicator) {
-            this.indicator.destroy();
+            try {
+                this.indicator.destroy();
+            } catch (e) {
+                log('Error destroying indicator: ' + e.message);
+            }
             this.indicator = null;
         }
         this.initialized = false;
@@ -105,6 +123,32 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
 
     toggleWindow() {
         log('Toggling window');
+        
+        // Check if process has exited (handles X button close case)
+        if (this.proc && !this.starting) {
+            try {
+                // Check if we can get the exit status without blocking
+                // This only works if the process has already terminated
+                let exitStatus = this.proc.get_exit_status();
+                // If we got here without exception, process has exited
+                log('Process already exited with status: ' + exitStatus);
+                this.proc = null;
+                this.starting = false;
+            } catch (e) {
+                // Exception means process is still running or we can't determine status
+                // Let's try a different approach - just attempt to send a signal
+                try {
+                    // Send signal 0 to check if process exists (doesn't actually kill it)
+                    this.proc.send_signal(0);
+                    log('Process still running, will kill it');
+                } catch (signalError) {
+                    log('Process already dead (signal failed), cleaning up');
+                    this.proc = null;
+                    this.starting = false;
+                }
+            }
+        }
+        
         if (!this.proc && !this.starting) {
             log('Creating new subprocess');
             this.starting = true;
@@ -119,11 +163,16 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             const windowY = y + height;
             log(`Button position: x=${x}, y=${y}, size: ${width}x${height}`);
             log(`Calculated window position: x=${windowX}, y=${windowY}`);
-            this.proc = new Gio.Subprocess({
-                argv: ['gjs', this.path + '/window.js', windowX.toString(), windowY.toString()]
-            });
-
-            this.proc.init(null);
+            try {
+                this.proc = new Gio.Subprocess({
+                    argv: ['gjs', this.path + '/window.js', windowX.toString(), windowY.toString()]
+                });
+                this.proc.init(null);
+            } catch (e) {
+                log('Failed to create subprocess: ' + e.message);
+                this.starting = false;
+                return;
+            }
 
             this.proc.wait_async(null, (proc, res) => {
                 try {
