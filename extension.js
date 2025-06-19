@@ -1,20 +1,75 @@
 import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import St from 'gi://St';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 // Constants
-const ICON_SIZE = 20;
-const MENU_ALIGNMENT = 0.0;
-const MENU_ARROW_SIDE = 0;
+const ICON_SIZE = 18;
+
+const AIChatIndicator = GObject.registerClass(
+class AIChatIndicator extends PanelMenu.Button {
+    _init(extension) {
+        super._init(0.5, 'AI Chat Indicator', false);
+        this._extension = extension;
+        
+        const icon = new St.Icon({
+            gicon: Gio.icon_new_for_string(`${extension.path}/icons/chatgpt_icon.png`),
+            style_class: 'system-status-icon',
+            icon_size: ICON_SIZE
+        });
+        this.add_child(icon);
+        
+        // Add menu items
+        let menuRestart = new PopupMenu.PopupMenuItem('Restart');
+        let menuQuit = new PopupMenu.PopupMenuItem('Quit');
+        
+        this.menu.addMenuItem(menuRestart);
+        this.menu.addMenuItem(menuQuit);
+        
+        menuRestart.connect('activate', () => this._extension.reloadWindow());
+        menuQuit.connect('activate', () => this._extension.killWindow());
+        
+        // Handle button clicks - override the default behavior
+        this.connect('button-press-event', (actor, event) => {
+            if (event.get_button() == 1) {
+                // Left click - toggle window and prevent menu
+                this._extension.toggleWindow();
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+    }
+    
+    vfunc_event(event) {
+        // Override the default PanelMenu.Button event handling
+        if (event.type() == Clutter.EventType.BUTTON_PRESS) {
+            if (event.get_button() == 1) {
+                // Left click - don't call parent method to avoid menu
+                this._extension.toggleWindow();
+                return Clutter.EVENT_STOP;
+            }
+        }
+        // For right clicks and other events, use default behavior
+        return super.vfunc_event(event);
+    }
+    
+    getButtonPosition() {
+        return this.get_transformed_position();
+    }
+    
+    getButtonSize() {
+        return this.get_size();
+    }
+});
 
 export default class ChatGPTGnomeDesktopExtension extends Extension {
     constructor(metadata) {
         super(metadata);
-        this.button = null;
-        this.icon = null;
-        this.menu = null;
+        this.indicator = null;
         this.proc = null;
         this.starting = false;
         this.initialized = false;
@@ -29,54 +84,8 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
         this.initialized = true;
 
         log('Initializing extension');
-        this.button = new St.Bin({
-            style_class: 'panel-button',
-            reactive: true,
-            can_focus: true,
-            x_expand: false,
-            y_expand: false,
-            track_hover: true
-        });
-
-        log('Loading ChatGPT icon from: ' + this.path + '/icons/chatgpt_icon.png');
-        let gicon = Gio.icon_new_for_string(this.path + "/icons/chatgpt_icon.png");
-        this.icon = new St.Icon({ 
-            gicon: gicon,
-            style_class: 'system-status-icon',
-            icon_size: ICON_SIZE
-        });
-
-        this.button.set_child(this.icon);
-        this.button.connect('button-press-event', (actor, event) => {
-            log('Button pressed: ' + event.get_button());
-            if (event.get_button() == 1) {
-                this.toggleWindow();
-            } else if (event.get_button() == 3) {
-                this.toggleMenu();
-            }
-        });
-
-        this.menu = new PopupMenu.PopupMenu(this.button, MENU_ALIGNMENT, St.Side.TOP, MENU_ARROW_SIDE);
-        this.menu.actor.add_style_class_name('panel-status-menu-box');
-        Main.layoutManager.addChrome(this.menu.actor);
-        this.menu.actor.hide();
-
-        let menuRestart = new PopupMenu.PopupMenuItem("Restart");
-        let menuQuit = new PopupMenu.PopupMenuItem("Quit");
-
-        this.menu.addMenuItem(menuRestart);
-        this.menu.addMenuItem(menuQuit);
-
-        menuRestart.connect('activate', () => this.reloadWindow());
-        menuQuit.connect('activate', () => this.killWindow());
-
-        // Enable the extension after initialization
-        log('Enabling extension');
-        if (!this.button.get_parent()) {
-            Main.panel._rightBox.insert_child_at_index(this.button, 0);
-        }
-        log('Button added to panel');
-
+        this.indicator = new AIChatIndicator(this);
+        Main.panel.addToStatusArea(this.metadata.uuid, this.indicator, 1, 'right');
         log('Extension initialized and enabled');
     }
 
@@ -86,17 +95,10 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
             this.killWindow();
             this.proc = null;
         }
-        if (this.button && this.button.get_parent()) {
-            Main.panel._rightBox.remove_child(this.button);
+        if (this.indicator) {
+            this.indicator.destroy();
+            this.indicator = null;
         }
-        if (this.menu) {
-            this.menu.destroy();
-            this.menu = null;
-        }
-        if (this.icon) {
-            this.icon = null;
-        }
-        this.button = null;
         this.initialized = false;
         log('Extension disabled and reset');
     }
@@ -109,8 +111,8 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
 
             // Calculate preferred window position based on button location
             // Note: Actual positioning depends on compositor support (limited on Wayland)
-            let [x, y] = this.button.get_transformed_position();
-            let [width, height] = this.button.get_size();
+            let [x, y] = this.indicator.getButtonPosition();
+            let [width, height] = this.indicator.getButtonSize();
             
             // Position window below the button
             const windowX = x;
@@ -163,12 +165,4 @@ export default class ChatGPTGnomeDesktopExtension extends Extension {
         }
     }
 
-    toggleMenu() {
-        log('Toggling menu');
-        if (this.menu.isOpen) {
-            this.menu.close();
-        } else {
-            this.menu.open();
-        }
-    }
 }
