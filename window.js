@@ -6,7 +6,7 @@ const Gtk = imports.gi.Gtk;
 const WebKit = imports.gi.WebKit;
 
 // Constants
-const APP_NAME = 'ChatGPT-Gnome-Desktop-Extension';
+const APP_NAME = 'AI-Chat-GNOME-Extension';
 const WINDOW_TITLE = 'ChatGPT';
 const DEFAULT_WINDOW_WIDTH = 1150;
 const DEFAULT_WINDOW_HEIGHT = 650;

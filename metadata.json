@@ -1,9 +1,9 @@
 {
-    "name": "ChatGPT for Gnome Desktop",
-    "description": "Access ChatGPT From Your Gnome-Desktop!",
+    "name": "AI Chat for Gnome Desktop",
+    "description": "Access AI Chats From Your Gnome-Desktop.",
     "version": "1.2",
-    "uuid": "chatgpt-gnome-desktop@chatgpt-gnome-desktop",
-    "shell-version": ["41", "42", "43", "44", "45", "46","47","48"],
-    "url": "https://github.com/HorrorPills/ChatGPT-Gnome-Desktop-Extension",
-    "author": "Rafal Mioduszewski"
+    "uuid": "ai-chat-gnome@ai-chat-gnome",
+    "shell-version": ["44", "45", "46","47","48"],
+    "url": "https://github.com/rumble19/AI-Chat-GNOME-Extension",
+    "author": "Kyle Rumble"
 }

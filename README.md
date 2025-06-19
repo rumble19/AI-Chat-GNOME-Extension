@@ -1,4 +1,4 @@
-# ChatGPT for GNOME Desktop (Enhanced Edition)
+# AI Chat for GNOME Desktop
 
 A community-improved version of the original [ChatGPT GNOME Extension](https://github.com/HorrorPills/ChatGPT-Gnome-Desktop-Extension) by **Rafal Mioduszewski**.
 
@@ -10,7 +10,7 @@ This extension lets you launch ChatGPT from your GNOME desktop as a standalone w
 
 - 🪟 Resizable, desktop-friendly window (no more mobile-size issue)
 - 🛑 Added minimize and close buttons
-- 🖥️ Updated support for GNOME Shell 41–48
+- 🖥️ Updated support for GNOME Shell 44–48
 - 🧹 Cleaner metadata and improved layout
 - ✅ Ready for use in modern Linux distros (AnduinOS, openSUSE Tumbleweed, etc.)
 
@@ -22,36 +22,13 @@ This extension lets you launch ChatGPT from your GNOME desktop as a standalone w
 
 ```bash
 # Clone the repository directly to your extensions directory
-git clone https://github.com/rumble19/ChatGPT-GNOME-Extension.git ~/.local/share/gnome-shell/extensions/chatgpt-gnome-desktop@chatgpt-gnome-desktop
+git clone https://github.com/rumble19/AI-Chat-GNOME-Extension.git ~/.local/share/gnome-shell/extensions/ai-chat-gnome@ai-chat-gnome
 
 # Enable the extension
-gnome-extensions enable chatgpt-gnome-desktop@chatgpt-gnome-desktop
+gnome-extensions enable ai-chat-gnome@ai-chat-gnome
 
-# Restart GNOME Shell (Alt+F2, type 'r', press Enter) or log out/in
+# Restart GNOME Shell (Alt+F2, type 'r', press Enter) or log out/in if on Wayland
 ```
-
-### Method 2: Manual Download
-
-1. **Download the repository** as a ZIP file from GitHub or from the [Releases](../../releases) section
-2. **Extract the files** to the correct location:
-
-```bash
-# Create extensions directory if it doesn't exist
-mkdir -p ~/.local/share/gnome-shell/extensions/
-
-# Extract to the correct folder name
-unzip ChatGPT-GNOME-Extension-main.zip
-mv ChatGPT-GNOME-Extension-main ~/.local/share/gnome-shell/extensions/chatgpt-gnome-desktop@chatgpt-gnome-desktop
-```
-
-3. **Enable the extension**:
-```bash
-gnome-extensions enable chatgpt-gnome-desktop@chatgpt-gnome-desktop
-```
-
-4. **Restart GNOME Shell**:
-   - On Wayland: Log out and log back in
-   - On X11: Press Alt+F2, type `r`, and press Enter
 
 ---
 
@@ -61,8 +38,6 @@ This project is distributed under the [MIT License](./LICENSE).
 
 - Original author: **Rafal Mioduszewski**
 - Modified and improved by the community.
-
-
 
 
 ## 💬 Feedback
