@@ -27,7 +27,9 @@ jobs:
 
     - name: Get extension UUID
       id: uuid
-      run: echo "UUID=$(grep '"uuid"' metadata.json | sed 's/.*"uuid": "\([^"]*\)".*/\1/')" >> $GITHUB_OUTPUT
+      run: |
+        UUID=$(grep '"uuid"' metadata.json | sed 's/.*"uuid": "\([^"]*\)".*/\1/')
+        echo "UUID=$UUID" >> $GITHUB_OUTPUT
 
     - name: Create release package
       run: |
