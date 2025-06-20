@@ -1,33 +1,40 @@
-# Installation Instructions for AI Chat GNOME Extension
+# Installation Guide
 
-## Prerequisites
+## Quick Install (Recommended)
 
-- GNOME Shell 45+ (for ES modules support)
-- `glib-compile-schemas` (usually included with GNOME)
+1. **Download the latest release**
+   - Visit: https://github.com/rumble19/AI-Chat-GNOME-Extension/releases
+   - Download: `ai-chat-gnome@rumble19.gmail.com-v[VERSION].zip`
 
-## Installation Steps
+2. **Install the extension**
+   ```bash
+   # Extract the zip file
+   unzip ai-chat-gnome@rumble19.gmail.com-v*.zip -d ~/.local/share/gnome-shell/extensions/
+   
+   # Restart GNOME Shell
+   # X11: Alt+F2, type 'r', press Enter
+   # Wayland: Log out and back in
+   
+   # Enable the extension
+   gnome-extensions enable ai-chat-gnome@rumble19.gmail.com
+   ```
 
-### 1. Clone and Install Extension
+## Manual Installation (Development)
 
 ```bash
-# Clone the repository to your extensions directory
-git clone https://github.com/rumble19/AI-Chat-GNOME-Extension.git ~/.local/share/gnome-shell/extensions/ai-chat-gnome@ai-chat-gnome
+# Clone repository
+git clone https://github.com/rumble19/AI-Chat-GNOME-Extension.git
 
-cd ~/.local/share/gnome-shell/extensions/ai-chat-gnome@ai-chat-gnome
+# Create symlink
+ln -s "$(pwd)/AI-Chat-GNOME-Extension" ~/.local/share/gnome-shell/extensions/ai-chat-gnome@rumble19.gmail.com
+
+# Compile schemas
+cd ~/.local/share/gnome-shell/extensions/ai-chat-gnome@rumble19.gmail.com/schemas
+glib-compile-schemas .
+
+# Enable extension
+gnome-extensions enable ai-chat-gnome@rumble19.gmail.com
 ```
-
-### 2. Compile GSettings Schema
-
-This step is **crucial** for the extension to work properly:
-
-```bash
-# Compile the settings schema
-glib-compile-schemas ~/.local/share/gnome-shell/extensions/ai-chat-gnome@ai-chat-gnome/schemas/
-```
-
-### 3. Enable the Extension
-
-```bash
 # Enable the extension
 gnome-extensions enable ai-chat-gnome@ai-chat-gnome
 ```

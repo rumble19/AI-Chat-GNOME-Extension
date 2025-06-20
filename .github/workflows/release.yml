@@ -1,0 +1,92 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y glib2.0-dev libglib2.0-dev-bin zip
+
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Update version in metadata.json
+      run: |
+        sed -i 's/"version-name": "[^"]*"/"version-name": "${{ steps.version.outputs.VERSION }}"/' metadata.json
+
+    - name: Get extension UUID
+      id: uuid
+      run: echo "UUID=$(grep '"uuid"' metadata.json | sed 's/.*"uuid": "\([^"]*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+    - name: Create release package
+      run: |
+        # Create temporary directory
+        TEMP_DIR=$(mktemp -d)
+        RELEASE_DIR="$TEMP_DIR/${{ steps.uuid.outputs.UUID }}"
+        mkdir -p "$RELEASE_DIR"
+        
+        # Copy extension files
+        cp *.js "$RELEASE_DIR/"
+        cp metadata.json "$RELEASE_DIR/"
+        
+        # Copy directories if they exist
+        [ -d "icons" ] && cp -r icons "$RELEASE_DIR/"
+        [ -d "po" ] && cp -r po "$RELEASE_DIR/"
+        [ -d "schemas" ] && cp -r schemas "$RELEASE_DIR/"
+        
+        # Compile schemas if they exist
+        if [ -d "$RELEASE_DIR/schemas" ]; then
+          glib-compile-schemas "$RELEASE_DIR/schemas/"
+        fi
+        
+        # Create zip
+        cd "$TEMP_DIR"
+        zip -r "${{ steps.uuid.outputs.UUID }}-v${{ steps.version.outputs.VERSION }}.zip" "${{ steps.uuid.outputs.UUID }}"
+        
+        # Move to workspace
+        mv "${{ steps.uuid.outputs.UUID }}-v${{ steps.version.outputs.VERSION }}.zip" "$GITHUB_WORKSPACE/"
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+        body: |
+          ## AI Chat GNOME Extension v${{ steps.version.outputs.VERSION }}
+          
+          ### Installation
+          
+          1. Download the zip file below
+          2. Extract it to `~/.local/share/gnome-shell/extensions/`
+          3. Restart GNOME Shell (Alt+F2, type 'r', Enter on X11 or logout/login on Wayland)
+          4. Enable the extension: `gnome-extensions enable ${{ steps.uuid.outputs.UUID }}`
+          
+          ### Changes in this release
+          
+          See commit history for detailed changes.
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ steps.uuid.outputs.UUID }}-v${{ steps.version.outputs.VERSION }}.zip
+        asset_name: ${{ steps.uuid.outputs.UUID }}-v${{ steps.version.outputs.VERSION }}.zip
+        asset_content_type: application/zip

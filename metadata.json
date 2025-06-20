@@ -2,7 +2,7 @@
     "name": "AI Chat for GNOME Desktop",
     "description": "Access AI Chats from your GNOME Desktop with proper window management and settings.",
     "version-name": "0.2.0",
-    "uuid": "ai-chat-gnome@ai-chat-gnome",
+    "uuid": "ai-chat-gnome@rumble19.gmail.com",
     "shell-version": ["45", "46", "47", "48"],
     "url": "https://github.com/rumble19/AI-Chat-GNOME-Extension",
     "author": "Kyle Rumble",

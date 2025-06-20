@@ -1,0 +1,15 @@
+# Release artifacts
+releases/
+*.zip
+
+# Development files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*~
+.tmp/
