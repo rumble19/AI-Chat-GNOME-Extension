@@ -20,7 +20,6 @@ const AIChatIndicator = GObject.registerClass(
       this._extension = extension;
       this._settings = extension.getSettings();
       this._process = null;
-      this._isStarting = false;
 
       // Create icon
       const iconPath = `${extension.path}/icons/chatgpt_icon.png`;
@@ -36,9 +35,13 @@ const AIChatIndicator = GObject.registerClass(
 
       // Create menu items
       this._createMenu();
+    }
 
-      // Override default click behavior
-      // We'll handle this in vfunc_event instead
+    // Helper to check if the window process is running
+    _isWindowOpen() {
+        // Simple approach: check if we have a process reference
+        // If the user closed the window, we'll find out when we try to interact with it
+        return this._process !== null;
     }
 
     // Override the default event handling to control when menu shows
@@ -62,87 +65,101 @@ const AIChatIndicator = GObject.registerClass(
     }
 
     _createMenu() {
-      // Just Preferences - keep it simple
+      // Restart option
+      const restartItem = new PopupMenu.PopupMenuItem(_("Restart"));
+      restartItem.connect("activate", () => this._restartWindow());
+      this.menu.addMenuItem(restartItem);
+
+      // Separator
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+      // Preferences
       const prefsItem = new PopupMenu.PopupMenuItem(_("Preferences"));
       prefsItem.connect("activate", () => this._extension.openPreferences());
       this.menu.addMenuItem(prefsItem);
     }
 
     _toggleWindow() {
-      if (!this._process && !this._isStarting) {
-        this._startWindow();
-      } else {
-        this._killWindow();
-      }
+        console.log("AI Chat: Toggling window.");
+
+        if (this._isWindowOpen()) {
+            console.log("AI Chat: Window process exists, killing it.");
+            this._killWindow();
+        } else {
+            console.log("AI Chat: No window process, starting one.");
+            this._startWindow();
+        }
     }
 
     _startWindow() {
-      if (this._isStarting) return;
+        console.log("AI Chat: Starting new window");
 
-      this._isStarting = true;
+        try {
+            // Get settings
+            const windowWidth = this._settings.get_int("window-width");
+            const windowHeight = this._settings.get_int("window-height");
+            const chatUrl = this._settings.get_string("chat-url");
 
-      try {
-        // Get button position for window placement hint
-        const [x, y] = this.get_transformed_position();
-        const [width, height] = this.get_size();
+            console.log(`AI Chat: Window size: ${windowWidth}x${windowHeight}, URL: ${chatUrl}`);
 
-        // Get settings
-        const windowWidth = this._settings.get_int("window-width");
-        const windowHeight = this._settings.get_int("window-height");
-        const chatUrl = this._settings.get_string("chat-url");
+            // Use simple spawn approach - no complex subprocess tracking
+            const launcher = new Gio.SubprocessLauncher({
+                flags: Gio.SubprocessFlags.NONE,
+            });
 
-        // Calculate window position (below button)
-        const windowX = x;
-        const windowY = y + height;
+            // Create subprocess with -m flag for ES modules
+            this._process = launcher.spawnv([
+                "gjs",
+                "-m",
+                `${this._extension.path}/window.js`,
+                "0", // x position (window manager will handle)
+                "0", // y position (window manager will handle)
+                windowWidth.toString(),
+                windowHeight.toString(),
+                chatUrl,
+            ]);
 
-        console.log(`Starting AI Chat window at ${windowX}, ${windowY}`);
+            // Simple cleanup when process exits
+            this._process.wait_async(null, () => {
+                console.log("AI Chat: Window process exited");
+                this._process = null;
+            });
 
-        // Create subprocess
-        this._process = new Gio.Subprocess({
-          argv: [
-            "gjs",
-            "-m",
-            `${this._extension.path}/window.js`,
-            windowX.toString(),
-            windowY.toString(),
-            windowWidth.toString(),
-            windowHeight.toString(),
-            chatUrl,
-          ],
-        });
-
-        this._process.init(null);
-
-        // Handle process completion
-        this._process.wait_async(null, (proc, res) => {
-          try {
-            this._process.wait_finish(res);
-            console.log("AI Chat window closed");
-          } catch (e) {
-            console.error(`AI Chat window error: ${e.message}`);
-          }
-
-          this._process = null;
-          this._isStarting = false;
-        });
-      } catch (e) {
-        console.error(`Failed to start AI Chat window: ${e.message}`);
-        this._isStarting = false;
-      }
+        } catch (e) {
+            console.error(`AI Chat: Failed to start window: ${e.message}`);
+            this._process = null;
+        }
     }
 
     _killWindow() {
-      if (this._process) {
-        try {
-          this._process.force_exit();
-          console.log("AI Chat window terminated");
-        } catch (e) {
-          console.error(`Failed to terminate window: ${e.message}`);
+        console.log("AI Chat: Killing window process");
+
+        if (this._process) {
+            try {
+                this._process.force_exit();
+                console.log("AI Chat: Kill signal sent");
+            } catch (e) {
+                console.log(`AI Chat: Error killing process: ${e.message}`);
+            }
+            this._process = null;
+        } else {
+            console.log("AI Chat: No process to kill");
         }
-      }
+    }
+
+    _restartWindow() {
+        console.log("AI Chat: Restarting window");
+        this._killWindow();
+        
+        // Short delay before restart
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            this._startWindow();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     destroy() {
+      console.log("AI Chat: Destroying indicator");
       this._killWindow();
       this._process = null;
       this._settings = null;

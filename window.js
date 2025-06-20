@@ -26,6 +26,8 @@ function prepareCookieStorage() {
 function createWindow(x, y, width, height, url) {
   log(`Creating window at ${x},${y} with size ${width}x${height}`);
 
+  let windowClosed = false;
+
   try {
     const appWindow = new Gtk.Window({
       default_width: width,
@@ -98,9 +100,18 @@ function createWindow(x, y, width, height, url) {
 
     appWindow.set_child(scrolledWindow);
 
-    // Handle window events
+    // Handle window close request (GTK4 way)
+    appWindow.connect("close-request", () => {
+      log("Window close requested by user");
+      windowClosed = true;
+      // Return false to allow normal close
+      return false;
+    });
+
+    // Handle window destruction
     appWindow.connect("destroy", () => {
       log("Window destroyed");
+      windowClosed = true;
     });
 
     // Handle failed loads
@@ -120,7 +131,10 @@ function createWindow(x, y, width, height, url) {
     appWindow.present();
     log("Window created and shown");
 
-    return appWindow;
+    return {
+      window: appWindow,
+      isWindowClosed: () => windowClosed,
+    };
   } catch (error) {
     log(`Error creating window: ${error.message}`);
     if (error.stack) {
@@ -130,53 +144,73 @@ function createWindow(x, y, width, height, url) {
   }
 }
 
-// Initialize GTK and run main logic
-log("AI Chat window starting up");
-
-// Initialize GTK
-Gtk.init();
-
-// Match system color scheme preference
-const settings = Gtk.Settings.get_default();
+// Add robust error logging for startup issues
 try {
-  const result = GLib.spawn_command_line_sync(
-    "gsettings get org.gnome.desktop.interface color-scheme"
-  );
-  if (result[0]) {
-    // Success
-    const colorScheme = new TextDecoder().decode(result[1]).trim();
-    const preferDark = colorScheme.includes("prefer-dark");
-    settings.set_property("gtk-application-prefer-dark-theme", preferDark);
-    log(`Theme set to match system: ${preferDark ? "dark" : "light"}`);
-  }
+  log(`window.js ARGV: ${JSON.stringify(ARGV)}`);
 } catch (e) {
-  log("Failed to read system color scheme, using default");
+  // If log() fails, fallback
+  print(`window.js ARGV: ${JSON.stringify(ARGV)}`);
 }
 
-// Parse command line arguments
-const args = ARGV; // ARGV is available globally in GJS scripts
-if (args.length < 5) {
-  log("Usage: window.js <x> <y> <width> <height> <url>");
-} else {
-  const [x, y, width, height, url] = args;
-  log(`Arguments: x=${x}, y=${y}, width=${width}, height=${height}, url=${url}`);
+try {
+  // Initialize GTK and run main logic
+  log("AI Chat window starting up");
 
-  // Create and show the window
-  const window = createWindow(
-    parseInt(x),
-    parseInt(y),
-    parseInt(width),
-    parseInt(height),
-    url
-  );
+  // Initialize GTK
+  Gtk.init();
 
-  // Run the main loop
-  const loop = GLib.MainLoop.new(null, false);
-  window.connect("destroy", () => {
-    log("Window destroyed, quitting main loop");
-    loop.quit();
-  });
+  // Match system color scheme preference
+  const settings = Gtk.Settings.get_default();
+  try {
+    const result = GLib.spawn_command_line_sync(
+      "gsettings get org.gnome.desktop.interface color-scheme"
+    );
+    if (result[0]) {
+      // Success
+      const colorScheme = new TextDecoder().decode(result[1]).trim();
+      const preferDark = colorScheme.includes("prefer-dark");
+      settings.set_property("gtk-application-prefer-dark-theme", preferDark);
+      log(`Theme set to match system: ${preferDark ? "dark" : "light"}`);
+    }
+  } catch (e) {
+    log("Failed to read system color scheme, using default");
+  }
 
-  loop.run();
-  log("Script execution completed");
+  // Parse command line arguments
+  const args = ARGV; // ARGV is available globally in GJS scripts
+  if (args.length < 5) {
+    log("Error: Not enough arguments");
+    log("Usage: window.js <x> <y> <width> <height> <url>");
+  } else {
+    const [x, y, width, height, url] = args;
+    log(`Arguments: x=${x}, y=${y}, width=${width}, height=${height}, url=${url}`);
+
+    // Create and show the window
+    const windowInfo = createWindow(
+      parseInt(x),
+      parseInt(y),
+      parseInt(width),
+      parseInt(height),
+      url
+    );
+
+    // Run the main loop
+    const loop = GLib.MainLoop.new(null, false);
+
+    windowInfo.window.connect("destroy", () => {
+      log("Window destroyed, quitting main loop");
+      loop.quit();
+    });
+
+    log("Entering main loop");
+    loop.run();
+
+    // Log clean exit
+    const exitStatus = windowInfo.isWindowClosed() ? 0 : 1;
+    log(`Script execution completed with status: ${exitStatus}`);
+  }
+} catch (e) {
+  log(`window.js: Uncaught exception: ${e.message}`);
+  if (e.stack) log(`window.js: Stack: ${e.stack}`);
+  throw e;
 }
